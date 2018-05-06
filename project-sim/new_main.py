@@ -28,7 +28,7 @@ alpha = 10
 beta = 1000
 d_vals = [1, 2, 3]
 policies = ["RANDOM", "BATCHING"]
-lambda_granularity_batching = 10
+lambda_granularity_batching = 100
 random_policy_edge = int(float(lambda_granularity_batching) * 0.1)
 workloadLimit = 2000
 eps = 0.05
@@ -42,8 +42,8 @@ resultsFilename = "n=" + str(n) + ",T_max=" + str(T_max) + ",p=" + str(probs) + 
                              + str(alpha) + ",b=" + str(beta) + ",granularity=" + str(lambda_granularity_batching)\
                              + ",results.txt"
 
-seed = 308001
-# seed = 20389574
+# seed = 308001
+seed = 20389574
 rnd = np.random.RandomState(seed=seed)
 net = QueueNetwork(n)
 histogramOfJobsLifetime = {}
@@ -305,9 +305,35 @@ for prob in probs:
     def curve_fit_func2(x, a, b, c, d):
         return a*x**8 + b*x**4 + c*x**2 + d*x
 
+
+    print "Plotting for all d"
     for policy in policies:
         for ii in range(len(d_vals)):
-            print "Plotting d=" + str(d_vals[ii])
+            d = d_vals[ii]
+            num_of_batches = int(math.ceil(n / float(d)))
+            mu = mu_effective[ii] * num_of_batches
+            lambda_param_tmp = [lambda_param[policy][ii][jj] * num_of_batches for jj in range(lambda_granularity[policy] + 1)]
+            lambda_param_fitted = [lp / (float(n) * mu_effective[0]) for lp in lambda_param_tmp]
+            lambda_param_fitted = np.array(lambda_param_fitted, dtype=float)
+            lim_avg_workload[policy][ii] = np.array(lim_avg_workload[policy][ii], dtype=float)
+            # try:
+                # popt, pcov = curve_fit(curve_fit_func, lambda_param_fitted, lim_avg_workload[policy][ii], maxfev=10000)
+            # except RuntimeError:
+            #     # next
+            #     continue
+            # plt.plot(lambda_param_fitted, curve_fit_func(lambda_param_fitted, *popt), label="Fitted Curve d=" + str(d_vals[ii]) + ', Policy = ' + str(policy))
+            plt.plot(lambda_param_fitted, lim_avg_workload[policy][ii], 'o', label="Original average workload samples d=" + str(d_vals[ii]) + ', Policy = ' + str(policy))
+            plt.title(r'$n$ = ' + str(n) + ', $p$ = ' + str(prob) + ', $\\alpha$ = ' + str(alpha) +
+                      ', $\\beta$ = ' + str(beta) + ', $d$ = ' + str(d_vals[ii]) + ', Policy = ' + str(policy))
+            plt.axvline(x=lambda_param_fitted[lambda_granularity_batching], linestyle='dashed')
+            plt.xlabel(r'$\frac{\lambda}{\mu_{d=1}}$')
+            plt.ylabel(r'Average workload $(\lim W)$')
+            plt.legend(loc='upper left')
+    plt.show()
+
+    for ii in range(len(d_vals)):
+        print "Plotting for d=" + str(d_vals[ii])
+        for policy in policies:
             d = d_vals[ii]
             num_of_batches = int(math.ceil(n / float(d)))
             mu = mu_effective[ii] * num_of_batches
@@ -320,14 +346,15 @@ for prob in probs:
             except RuntimeError:
                 # next
                 continue
-            plt.plot(lambda_param_fitted, curve_fit_func(lambda_param_fitted, *popt), label="Fitted Curve d=" + str(d_vals[ii]) + ', Policy = ' + str(policy))
-            plt.plot(lambda_param_fitted, lim_avg_workload[policy][ii], 'o', label="Original average workload samples d=" + str(d_vals[ii]) + ', Policy = ' + str(policy))
+            plt.plot(lambda_param_fitted, curve_fit_func(lambda_param_fitted, *popt), label="Fitted Curve, Policy = " + str(policy))
+            plt.plot(lambda_param_fitted, lim_avg_workload[policy][ii], 'o', label="Original average workload samples, Policy = " + str(policy))
             plt.title(r'$n$ = ' + str(n) + ', $p$ = ' + str(prob) + ', $\\alpha$ = ' + str(alpha) +
-                      ', $\\beta$ = ' + str(beta) + ', $d$ = ' + str(d_vals[ii]) + ', Policy = ' + str(policy))
+                      ', $\\beta$ = ' + str(beta) + ', $d$ = ' + str(d_vals[ii]))
             plt.axvline(x=lambda_param_fitted[lambda_granularity_batching], linestyle='dashed')
             plt.xlabel(r'$\frac{\lambda}{\mu_{d=1}}$')
             plt.ylabel(r'Average workload $(\lim W)$')
             plt.legend(loc='upper left')
+        plt.show()
     plt.show()
 
     for policy in policies:
