@@ -21,8 +21,8 @@ def convergenceCheck(stdv, avg, epsilon):
 
 n = 6
 # Assumption: 2*T_min << T_max
-T_min = 25000
-T_max = 2000000
+T_min = 50000
+T_max = 5000000
 probs = [0.9]
 alpha = 10
 beta = 1000
@@ -307,9 +307,13 @@ for prob in probs:
 
 
     print "Plotting for all d"
+    plotted_d_1 = False
     for policy in policies:
         for ii in range(len(d_vals)):
             d = d_vals[ii]
+            if plotted_d_1 and d == 1:
+                continue
+            plotted_d_1 = True
             num_of_batches = int(math.ceil(n / float(d)))
             mu = mu_effective[ii] * num_of_batches
             lambda_param_tmp = [lambda_param[policy][ii][jj] * num_of_batches for jj in range(lambda_granularity[policy] + 1)]
@@ -322,19 +326,25 @@ for prob in probs:
             #     # next
             #     continue
             # plt.plot(lambda_param_fitted, curve_fit_func(lambda_param_fitted, *popt), label="Fitted Curve d=" + str(d_vals[ii]) + ', Policy = ' + str(policy))
-            plt.plot(lambda_param_fitted, lim_avg_workload[policy][ii], 'o', label="Original average workload samples d=" + str(d_vals[ii]) + ', Policy = ' + str(policy))
+            if d == 1:
+                plt.plot(lambda_param_fitted, lim_avg_workload[policy][ii], 'o',
+                         label="Average workload samples d=" + str(d_vals[ii]))
+            else:
+                plt.plot(lambda_param_fitted, lim_avg_workload[policy][ii], 'o', label="Average workload samples d=" + str(d_vals[ii]) + ', Policy = ' + str(policy))
             plt.title(r'$n$ = ' + str(n) + ', $p$ = ' + str(prob) + ', $\\alpha$ = ' + str(alpha) +
-                      ', $\\beta$ = ' + str(beta) + ', $d$ = ' + str(d_vals[ii]) + ', Policy = ' + str(policy))
+                      ', $\\beta$ = ' + str(beta))
             plt.axvline(x=lambda_param_fitted[lambda_granularity_batching], linestyle='dashed')
             plt.xlabel(r'$\frac{\lambda}{\mu_{d=1}}$')
             plt.ylabel(r'Average workload $(\lim W)$')
-            plt.legend(loc='upper left')
+            plt.legend(loc='upper right')
     plt.show()
 
     for ii in range(len(d_vals)):
         print "Plotting for d=" + str(d_vals[ii])
         for policy in policies:
             d = d_vals[ii]
+            if policy == 'RANDOM' and d == 1:
+                continue
             num_of_batches = int(math.ceil(n / float(d)))
             mu = mu_effective[ii] * num_of_batches
             lambda_param_tmp = [lambda_param[policy][ii][jj] * num_of_batches for jj in range(lambda_granularity[policy] + 1)]
@@ -357,11 +367,14 @@ for prob in probs:
         plt.show()
     plt.show()
 
+    last_point = len(sumOfHistogram['RANDOM'][0]) - 1
     for policy in policies:
         for ii in range(len(d_vals)):
+            extension = [1 for i in range(last_point - len(sumOfHistogram[policy][ii]))]
+            sumOfHistogram[policy][ii] += extension
             plt.plot(range(int(len(sumOfHistogram[policy][ii]))), sumOfHistogram[policy][ii], label="d = " + str(d_vals[ii]) + ", Policy =  " + str(policy))
             plt.title(r'$n$ = ' + str(n) + ', $p$ = ' + str(prob) + ', $\\alpha$ = ' + str(alpha) +
-                      ', $\\beta$ = ' + str(beta) + ', $d$ = ' + str(d_vals[ii]) + ', Policy = ' + str(policy))
+                      ', $\\beta$ = ' + str(beta))
             plt.xlabel(r'$k$ (Time in system)')
             plt.ylabel(r'Ratio of tasks done in up to $k$ time to all tasks in $' + str(2*T_max) + '$')
             plt.legend(loc='lower right')
